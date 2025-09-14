@@ -7,9 +7,10 @@ import logging
 import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
-
+import numpy as np
 from typing import Optional, Dict, Any
 from urllib.parse import urlparse
+import json
 
 from dotenv import load_dotenv
 import pandas as pd

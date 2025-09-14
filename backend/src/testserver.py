@@ -15,7 +15,7 @@ params2 = {
 }
 
 params3 = {
-    "dataset": "general",
+    "dataset": "summary",
     "file_name":"scraped_results.txt",
     "org_name":"Texas Blockchain"
 }

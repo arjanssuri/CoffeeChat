@@ -1,14 +1,24 @@
 "use client"
 
+import { useEffect, useRef } from "react"
+import { useRouter } from "next/navigation"
+import { useAuth } from "@/hooks/useAuth"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Calendar, Coffee, Users, Zap } from "lucide-react"
 import Image from "next/image"
 import Link from "next/link"
-import { useEffect, useRef } from "react"
 
 export default function LandingPage() {
+  const { user, loading } = useAuth()
+  const router = useRouter()
   const scrollContainerRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!loading && user) {
+      router.push("/dashboard")
+    }
+  }, [user, loading, router])
 
   useEffect(() => {
     const scrollContainer = scrollContainerRef.current

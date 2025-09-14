@@ -3,6 +3,8 @@
 import type React from "react"
 
 import { useState } from "react"
+import { useRouter } from "next/navigation"
+import { supabase } from "@/lib/supabase"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -20,30 +22,81 @@ export default function GetStartedPage() {
     confirmPassword: "",
     agreeToTerms: false,
   })
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState("")
+  const router = useRouter()
 
   const handleInputChange = (field: string, value: string | boolean) => {
     setFormData((prev) => ({ ...prev, [field]: value }))
   }
 
-  const handleEmailSignUp = (e: React.FormEvent) => {
+  const handleEmailSignUp = async (e: React.FormEvent) => {
     e.preventDefault()
     if (formData.password !== formData.confirmPassword) {
-      alert("Passwords do not match!")
+      setError("Passwords do not match!")
       return
     }
     if (!formData.agreeToTerms) {
-      alert("Please agree to the terms and conditions")
+      setError("Please agree to the terms and conditions")
       return
     }
-    // Mock sign up
-    console.log("Mock sign up with:", formData)
-    alert("Mock account created successfully!")
+
+    setIsLoading(true)
+    setError("")
+    
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email: formData.email,
+        password: formData.password,
+        options: {
+          data: {
+            first_name: formData.firstName,
+            last_name: formData.lastName,
+          }
+        }
+      })
+      
+      if (error) {
+        setError(error.message)
+        return
+      }
+      
+      if (data.user) {
+        console.log("Sign up successful:", data)
+        alert("Account created successfully! Please check your email for verification.")
+        router.push("/dashboard")
+      }
+      
+    } catch (err) {
+      console.error("Sign up error:", err)
+      setError("An unexpected error occurred")
+    } finally {
+      setIsLoading(false)
+    }
   }
 
-  const handleGoogleSignUp = () => {
-    // Mock Google sign up
-    console.log("Mock Google sign up")
-    alert("Mock Google account created successfully!")
+  const handleGoogleSignUp = async () => {
+    setIsLoading(true)
+    setError("")
+    
+    try {
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+      })
+      
+      if (error) {
+        setError(error.message)
+        return
+      }
+      
+      console.log("Google sign up initiated:", data)
+      
+    } catch (err) {
+      console.error("Google sign up error:", err)
+      setError("Google sign up failed")
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
@@ -64,11 +117,19 @@ export default function GetStartedPage() {
             <CardDescription className="text-[#8b7355] font-light">Get started in less than 2 minutes</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
+            {/* Error Display */}
+            {error && (
+              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl">
+                {error}
+              </div>
+            )}
+            
             {/* Google Sign Up */}
             <Button
               onClick={handleGoogleSignUp}
+              disabled={isLoading}
               variant="outline"
-              className="w-full rounded-xl border-[#e6d5c3] hover:bg-[#f5ebe1] text-[#4a3728] font-light py-6 bg-transparent"
+              className="w-full rounded-xl border-[#e6d5c3] hover:bg-[#f5ebe1] text-[#4a3728] font-light py-6 bg-transparent disabled:opacity-50"
             >
               <svg className="w-5 h-5 mr-3" viewBox="0 0 24 24">
                 <path
@@ -88,7 +149,7 @@ export default function GetStartedPage() {
                   d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
                 />
               </svg>
-              Continue with Google
+              {isLoading ? "Loading..." : "Continue with Google"}
             </Button>
 
             <div className="relative">
@@ -164,9 +225,10 @@ export default function GetStartedPage() {
 
               <Button
                 type="submit"
-                className="w-full bg-[#4a3728] hover:bg-[#3d2e21] text-white rounded-xl font-light py-6"
+                disabled={isLoading}
+                className="w-full bg-[#4a3728] hover:bg-[#3d2e21] text-white rounded-xl font-light py-6 disabled:opacity-50"
               >
-                Create Account
+                {isLoading ? "Creating Account..." : "Create Account"}
               </Button>
             </form>
           </CardContent>

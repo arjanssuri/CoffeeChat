@@ -6,7 +6,8 @@ from pathlib import Path
 import logging
 import requests
 from requests.adapters import HTTPAdapter
-from urllib3 import Retry
+from urllib3.util.retry import Retry
+
 from typing import Optional, Dict, Any
 from urllib.parse import urlparse
 
@@ -15,7 +16,10 @@ import pandas as pd
 import foundry_sdk
 import subprocess
 import sys
+import asyncio
+import inspect
 
+from scripts.palhacksscrape import process  # import function
 # =========================
 # Config / Environment
 # =========================
@@ -136,21 +140,23 @@ def _normalize_hostname(h: str) -> str:
 
 
 
-def run_scraper():
-    # Construct full path to script
-    script_path = "backend/src/scripts/palhacksscrape.py"
-    # Call with the same interpreter you’re running
-    result = subprocess.run([sys.executable, script_path], capture_output=True, text=True)
+def run_scraper(URL: str, out_name: str):
+    script = Path(__file__).parent / "scripts" / "palhacksscrape.py"
+    cmd = [sys.executable, str(script), "--url", URL, "--out", out_name]
+    res = subprocess.run(cmd, capture_output=True, text=True)
+    if res.returncode != 0:
+        raise RuntimeError(f"Scraper failed ({res.returncode}): {res.stderr.strip() or res.stdout.strip()}")
     
-    if result.returncode != 0:
-        raise RuntimeError(f"Scraper failed with code {result.returncode}")
+    
+    
 
 
-def push_file(dataset_rid, name):
+def push_file(dataset_rid, name, URL):
     
     dataset_rel_path = name  # path within dataset (no ./)
 
-    run_scraper()
+    run_scraper(URL, name)
+    _wait_for_file(f"./{dataset_rel_path}")
 
     url = f"https://{host}/api/v1/datasets/{dataset_rid}/files:upload"
     params = {"filePath": dataset_rel_path}
@@ -169,7 +175,16 @@ def push_file(dataset_rid, name):
     print(resp.status_code, resp.text)
     resp.raise_for_status()
 
+import time
 
+def _wait_for_file(path: str, timeout: float = 60.0):
+    p = Path(path)
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        if p.exists() and p.stat().st_size > 0:
+            return
+        time.sleep(0.2)
+    raise TimeoutError(f"File not created in time: {p}")
 
 # WE SENT THE TXT FILE SUCCESSFULLY
 # NOW CANT FIGURE OUT WHEN THE PIPELINE IS FINISHED BUILDING
@@ -211,14 +226,18 @@ def _read_tabular_sdk(dataset_rid: str, columns=None) -> pd.DataFrame:
     return pd.read_csv(io.BytesIO(buf))
 
 
-def get_output_table(output_table_rid: str, file_name: str) -> pd.DataFrame:
+def get_output_table(output_table_rid: str, file_name: str, org_name: str) -> pd.DataFrame:
     df = _read_tabular_sdk(output_table_rid)
     print(df.columns)
     # Shortens the file path so that it just shows the actual file name
-    if ("_file" in df.columns):
-        df["_file"] = df["_file"].astype(str).str.split("/").str[-1]
 
-        filtered_df = df[df["_file"] == file_name]
+    #print(org_name)
+    if ("org_name" in df.columns):
+        
+        
+        df["org_name"] = df["org_name"].astype(str).str.split("\n").str[0]
+        #print(df.head())
+        filtered_df = df[df["org_name"] == org_name]
     else:
         df["path"] = df["path"].astype(str).str.split("/").str[-1]
         filtered_df = df[df["path"] == file_name]
@@ -281,15 +300,16 @@ def main():
     #there's a delay of like 2 mins for the pipeline to actually update
     #no workaround to wait, just have to set an arbitrary cool down for the users (skip past the cooldown for the demo video)
 
-    #file_name = "scraped_results.txt"
-    #push_file(TXT_INPUT_DATASET_RID, file_name)
-    #get_output_table(QNA_DATASET_RID)
+    file_name = "scraped_results.txt"
+    #URL = "https://txproduct.org/"
+    #push_file(TXT_INPUT_DATASET_RID, file_name, URL)
+    get_output_table(QNA_DATASET_RID, file_name, "Texas Blockchain")
 
 
-    image_name = "test.png"
+    #image_name = "test.png"
     #path = upload_image_to_media_set(IMG_INPUT_DATASET_RID, image_name)
     #print("Uploaded image path:", path)
-    get_output_table(EVENT_DATASET_RID, image_name)
+    #get_output_table(EVENT_DATASET_RID, image_name)
 
 
 if __name__ == "__main__":

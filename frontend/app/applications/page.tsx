@@ -187,6 +187,12 @@ export default function ApplicationsPage() {
               >
                 Applications
               </Link>
+              <Link 
+                href="/calendar" 
+                className="text-[#8b7355] hover:text-[#4a3728] font-light"
+              >
+                Calendar
+              </Link>
               
               <div className="flex items-center space-x-4">
                 <div className="flex items-center space-x-2">
@@ -218,7 +224,7 @@ export default function ApplicationsPage() {
         {/* Header Section */}
         <div className="flex justify-between items-center mb-8">
           <div>
-            <h1 className="text-3xl font-light text-[#4a3728] mb-2">My Applications</h1>
+            <h1 className="text-3xl font-light text-[#4a3728] mb-2">Organization Applications</h1>
             <p className="text-[#8b7355] font-light">
               {applications.length} application{applications.length !== 1 ? 's' : ''}
             </p>
@@ -248,7 +254,7 @@ export default function ApplicationsPage() {
                     value={newApp.title}
                     onChange={(e) => setNewApp(prev => ({ ...prev, title: e.target.value }))}
                     className="col-span-3"
-                    placeholder="Common App Essay"
+                    placeholder="Longhorn Racing"
                   />
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
@@ -260,7 +266,7 @@ export default function ApplicationsPage() {
                     value={newApp.school}
                     onChange={(e) => setNewApp(prev => ({ ...prev, school: e.target.value }))}
                     className="col-span-3"
-                    placeholder="University of Texas"
+                    placeholder="University of Texas at Austin"
                   />
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">

@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Plus, FileText, Edit, Trash2 } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
@@ -26,24 +27,39 @@ interface Application {
   user_id: string
 }
 
+interface Organization {
+  id: string
+  name: string
+  school_id: string
+  website_url?: string
+  description?: string
+  org_type: string
+}
+
 export default function ApplicationsPage() {
-  const { user, loading, signOut } = useAuth()
+  const { user, loading, profileComplete, signOut } = useAuth()
   const router = useRouter()
   const searchParams = useSearchParams()
   const [applications, setApplications] = useState<Application[]>([])
+  const [organizations, setOrganizations] = useState<Organization[]>([])
+  const [userProfile, setUserProfile] = useState<any>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [showNewDialog, setShowNewDialog] = useState(false)
   const [newApp, setNewApp] = useState({
     title: "",
     school: "",
     deadline: "",
+    website_url: "",
+    customTitle: "",
   })
 
   useEffect(() => {
     if (!loading && !user) {
       router.push("/signin")
+    } else if (!loading && user && profileComplete === false) {
+      router.push("/profile-setup")
     }
-  }, [user, loading, router])
+  }, [user, loading, profileComplete, router])
 
   useEffect(() => {
     if (searchParams.get('new') === 'true') {
@@ -54,8 +70,36 @@ export default function ApplicationsPage() {
   useEffect(() => {
     if (user) {
       fetchApplications()
+      fetchUserProfileAndOrganizations()
     }
   }, [user])
+
+  const fetchUserProfileAndOrganizations = async () => {
+    try {
+      // Fetch user profile to get school info
+      const profileResponse = await fetch(`http://localhost:8000/api/users/${user?.id}/profile`)
+      if (profileResponse.ok) {
+        const profileData = await profileResponse.json()
+        setUserProfile(profileData.profile)
+
+        // Fetch organizations for user's school
+        if (profileData.profile?.school_id) {
+          console.log('Fetching organizations for school:', profileData.profile.school_id)
+          const orgsResponse = await fetch(`http://localhost:8000/api/organizations/${profileData.profile.school_id}`)
+          console.log('Organizations response status:', orgsResponse.status)
+          if (orgsResponse.ok) {
+            const orgsData = await orgsResponse.json()
+            console.log('Organizations data:', orgsData)
+            setOrganizations(orgsData.organizations || [])
+          } else {
+            console.error('Failed to fetch organizations:', orgsResponse.statusText)
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching user profile and organizations:', error)
+    }
+  }
 
   const fetchApplications = async () => {
     try {
@@ -79,14 +123,34 @@ export default function ApplicationsPage() {
   }
 
   const createApplication = async () => {
-    if (!newApp.title || !newApp.school || !user) return
+    const finalTitle = newApp.title === "Other" ? newApp.customTitle : newApp.title
+    if (!finalTitle || !userProfile?.school_name || !user) return
+
+    // If "Other" is selected and URL is provided, submit scrape request
+    if (newApp.title === "Other" && newApp.website_url && newApp.customTitle) {
+      try {
+        await fetch('/api/scrape-requests', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            org_name: newApp.customTitle,
+            website_url: newApp.website_url,
+            suggested_type: 'student_organization',
+            user_id: user.id,
+            school_id: userProfile.school_id
+          })
+        })
+      } catch (error) {
+        console.error('Error submitting scrape request:', error)
+      }
+    }
 
     try {
       const { data, error } = await supabase
         .from('applications')
         .insert({
-          title: newApp.title,
-          school: newApp.school,
+          title: finalTitle,
+          school: userProfile.school_name,
           deadline: newApp.deadline,
           status: 'draft',
           user_id: user.id
@@ -100,7 +164,7 @@ export default function ApplicationsPage() {
       }
 
       setApplications(prev => [data, ...prev])
-      setNewApp({ title: "", school: "", deadline: "" })
+      setNewApp({ title: "", school: "", deadline: "", website_url: "", customTitle: "" })
       setShowNewDialog(false)
 
       // Navigate to the editor for this application
@@ -246,27 +310,66 @@ export default function ApplicationsPage() {
               </DialogHeader>
               <div className="grid gap-4 py-4">
                 <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="title" className="text-right">
-                    Title
+                  <Label htmlFor="organization" className="text-right">
+                    Organization
                   </Label>
-                  <Input
-                    id="title"
+                  <Select
                     value={newApp.title}
-                    onChange={(e) => setNewApp(prev => ({ ...prev, title: e.target.value }))}
-                    className="col-span-3"
-                    placeholder="Longhorn Racing"
-                  />
+                    onValueChange={(value) => setNewApp(prev => ({ ...prev, title: value }))}
+                  >
+                    <SelectTrigger className="col-span-3">
+                      <SelectValue placeholder="Select organization..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {organizations.map((org) => (
+                        <SelectItem key={org.id} value={org.name}>
+                          {org.name}
+                        </SelectItem>
+                      ))}
+                      <SelectItem value="Other">Other</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
+
+                {newApp.title === "Other" && (
+                  <>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                      <Label htmlFor="custom-title" className="text-right">
+                        Organization Name
+                      </Label>
+                      <Input
+                        id="custom-title"
+                        value={newApp.customTitle}
+                        onChange={(e) => setNewApp(prev => ({ ...prev, customTitle: e.target.value }))}
+                        className="col-span-3"
+                        placeholder="Enter organization name"
+                      />
+                    </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                      <Label htmlFor="website-url" className="text-right">
+                        Website URL
+                      </Label>
+                      <Input
+                        id="website-url"
+                        value={newApp.website_url}
+                        onChange={(e) => setNewApp(prev => ({ ...prev, website_url: e.target.value }))}
+                        className="col-span-3"
+                        placeholder="https://organization.com"
+                      />
+                    </div>
+                  </>
+                )}
+
                 <div className="grid grid-cols-4 items-center gap-4">
                   <Label htmlFor="school" className="text-right">
                     School
                   </Label>
                   <Input
                     id="school"
-                    value={newApp.school}
-                    onChange={(e) => setNewApp(prev => ({ ...prev, school: e.target.value }))}
-                    className="col-span-3"
-                    placeholder="University of Texas at Austin"
+                    value={userProfile?.school_name || ""}
+                    className="col-span-3 bg-gray-50 text-gray-600"
+                    disabled
+                    readOnly
                   />
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
@@ -283,9 +386,12 @@ export default function ApplicationsPage() {
                 </div>
               </div>
               <DialogFooter>
-                <Button 
+                <Button
                   onClick={createApplication}
-                  disabled={!newApp.title || !newApp.school}
+                  disabled={
+                    !userProfile?.school_name ||
+                    (!newApp.title || (newApp.title === "Other" && !newApp.customTitle))
+                  }
                   className="bg-[#4a3728] hover:bg-[#3d2e21] text-white"
                 >
                   Create Application

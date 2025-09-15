@@ -37,7 +37,23 @@ export default function SignInPage() {
       
       if (data.user) {
         console.log("Sign in successful:", data)
-        router.push("/dashboard")
+        // Check if profile is complete before redirecting
+        try {
+          const response = await fetch(`http://localhost:8000/api/users/${data.user.id}/profile`)
+          if (response.ok) {
+            const profileData = await response.json()
+            if (profileData.profile?.profile_completed) {
+              router.push("/dashboard")
+            } else {
+              router.push("/profile-setup")
+            }
+          } else {
+            router.push("/profile-setup")
+          }
+        } catch (error) {
+          console.error("Error checking profile:", error)
+          router.push("/profile-setup")
+        }
       }
       
     } catch (err) {
@@ -51,19 +67,22 @@ export default function SignInPage() {
   const handleGoogleSignIn = async () => {
     setIsLoading(true)
     setError("")
-    
+
     try {
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`
+        }
       })
-      
+
       if (error) {
         setError(error.message)
         return
       }
-      
+
       console.log("Google sign in initiated:", data)
-      
+
     } catch (err) {
       console.error("Google sign in error:", err)
       setError("Google sign in failed")

@@ -24,19 +24,22 @@ interface Application {
 }
 
 export default function Dashboard() {
-  const { user, loading, signOut } = useAuth()
+  const { user, loading, profileComplete, signOut } = useAuth()
   const router = useRouter()
   const [recentApplications, setRecentApplications] = useState<Application[]>([])
   const [upcomingDeadlines, setUpcomingDeadlines] = useState<Application[]>([])
   const [isLoadingData, setIsLoadingData] = useState(true)
   const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([])
   const [isCalendarConnected, setIsCalendarConnected] = useState(false)
+  const [userProfile, setUserProfile] = useState<any>(null)
 
   useEffect(() => {
     if (!loading && !user) {
       router.push("/signin")
+    } else if (!loading && user && profileComplete === false) {
+      router.push("/profile-setup")
     }
-  }, [user, loading, router])
+  }, [user, loading, profileComplete, router])
 
   useEffect(() => {
     if (user) {
@@ -47,6 +50,17 @@ export default function Dashboard() {
   const fetchDashboardData = async () => {
     try {
       setIsLoadingData(true)
+
+      // Fetch user profile with school information
+      try {
+        const response = await fetch(`http://localhost:8000/api/users/${user?.id}/profile`)
+        if (response.ok) {
+          const profileData = await response.json()
+          setUserProfile(profileData.profile)
+        }
+      } catch (error) {
+        console.error('Error fetching user profile:', error)
+      }
 
       // Fetch recent applications (last 3)
       const { data: recent, error: recentError } = await supabase
@@ -132,25 +146,25 @@ export default function Dashboard() {
             </Link>
             
             <nav className="flex items-center space-x-6">
-              <Link 
-                href="/dashboard" 
+              <Link
+                href="/dashboard"
                 className="text-[#8b7355] hover:text-[#4a3728] font-light"
               >
                 Dashboard
               </Link>
-              <Link 
-                href="/applications" 
+              <Link
+                href="/applications"
                 className="text-[#8b7355] hover:text-[#4a3728] font-light"
               >
                 Applications
               </Link>
-              <Link 
-                href="/calendar" 
+              <Link
+                href="/calendar"
                 className="text-[#8b7355] hover:text-[#4a3728] font-light"
               >
                 Calendar
               </Link>
-              
+
               <div className="flex items-center space-x-4">
                 <div className="flex items-center space-x-2">
                   <Avatar className="h-8 w-8">
@@ -207,20 +221,34 @@ export default function Dashboard() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex items-center space-x-4">
-              <Avatar className="h-12 w-12">
-                <AvatarImage src={userAvatar} alt={userName} />
-                <AvatarFallback className="bg-[#4a3728] text-white">
-                  {userInitials}
-                </AvatarFallback>
-              </Avatar>
-              <div>
-                <p className="text-[#4a3728] font-medium">{userName}</p>
-                <p className="text-[#8b7355] font-light text-sm">{user.email}</p>
-                <p className="text-xs text-[#8b7355] font-light">
-                  Joined {new Date(user.created_at).toLocaleDateString()}
-                </p>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-4">
+                <Avatar className="h-12 w-12">
+                  <AvatarImage src={userAvatar} alt={userName} />
+                  <AvatarFallback className="bg-[#4a3728] text-white">
+                    {userInitials}
+                  </AvatarFallback>
+                </Avatar>
+                <div>
+                  <p className="text-[#4a3728] font-medium">{userName}</p>
+                  <p className="text-[#8b7355] font-light text-sm">{user.email}</p>
+                  <p className="text-xs text-[#8b7355] font-light">
+                    Joined {new Date(user.created_at).toLocaleDateString()}
+                  </p>
+                </div>
               </div>
+
+              {/* School Logo on the right side */}
+              {userProfile?.school_logo_url && (
+                <div className="flex items-center">
+                  <Image
+                    src={userProfile.school_logo_url}
+                    alt={userProfile.school_name || "School"}
+                    width={200}
+                    height={200}
+                  />
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>

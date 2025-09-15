@@ -5,9 +5,13 @@ import { Analytics } from '@vercel/analytics/next'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'v0 App',
-  description: 'Created with v0',
-  generator: 'v0.app',
+  title: 'CoffeeChat',
+  description: 'Comprehensive college application management platform with AI-powered essay assistance',
+  icons: {
+    icon: '/images/goose-logo.png',
+    shortcut: '/images/goose-logo.png',
+    apple: '/images/goose-logo.png',
+  },
 }
 
 export default function RootLayout({

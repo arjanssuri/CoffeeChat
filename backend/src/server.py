@@ -14,7 +14,9 @@ import foundry_sdk
 from contextlib import asynccontextmanager
 # third-party module in your repo; ensure it's importable
 import testing  # make sure PYTHONPATH includes this package/module
-
+import pandas as pd
+import numpy as np
+import json
 
 
 # --- Globals populated on startup ---
@@ -139,6 +141,12 @@ class GetDatasetIn(BaseModel):
     file_name: str
     org_name: str
 
+
+def df_records_json_safe(df: pd.DataFrame):
+    df = df.replace([np.inf, -np.inf], np.nan)
+    return json.loads(df.to_json(orient="records"))  # NaN -> null
+
+
 @app.post("/get_dataset")
 def get_dataset(payload: GetDatasetIn):
     ds = payload.dataset.lower()
@@ -152,9 +160,9 @@ def get_dataset(payload: GetDatasetIn):
         df = testing.get_output_table(EVENT_DATASET_RID, payload.file_name, payload.org_name)
     else:
         raise HTTPException(status_code=400, detail="dataset must be one of qna|general|summary|events")
-
+    rows = df_records_json_safe(df)
     # valid orientations: 'records', 'index', 'split', 'list', 'dict', 'tight', 'series'
-    return {"message": "Dataset located", "rows": df.to_dict(orient="records")}
+    return {"message": "Dataset located", "rows": rows}
 
 if __name__ == "__main__":
     import uvicorn

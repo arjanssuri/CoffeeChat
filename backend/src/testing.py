@@ -7,9 +7,10 @@ import logging
 import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
-
+import numpy as np
 from typing import Optional, Dict, Any
 from urllib.parse import urlparse
+import json
 
 from dotenv import load_dotenv
 import pandas as pd
@@ -300,16 +301,16 @@ def main():
     #there's a delay of like 2 mins for the pipeline to actually update
     #no workaround to wait, just have to set an arbitrary cool down for the users (skip past the cooldown for the demo video)
 
-    file_name = "scraped_results.txt"
+    #file_name = "scraped_results.txt"
     #URL = "https://txproduct.org/"
     #push_file(TXT_INPUT_DATASET_RID, file_name, URL)
-    get_output_table(QNA_DATASET_RID, file_name, "Texas Blockchain")
+    #get_output_table(QNA_DATASET_RID, file_name, "Texas Blockchain")
 
 
-    #image_name = "test.png"
+    image_name = "test.png"
     #path = upload_image_to_media_set(IMG_INPUT_DATASET_RID, image_name)
     #print("Uploaded image path:", path)
-    #get_output_table(EVENT_DATASET_RID, image_name)
+    get_output_table(EVENT_DATASET_RID, image_name, "Texas Blockchain")
 
 
 if __name__ == "__main__":

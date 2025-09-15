@@ -1,4 +1,4 @@
-from playwright.sync_api import sync_playwright
+from playwright.async_api import async_playwright
 import re
 import logging
 from typing import Dict, List, Optional
@@ -10,19 +10,19 @@ class OrganizationScraper:
     def __init__(self):
         self.results = []
 
-    def scrape_organization(self, url: str) -> ScrapedOrgData:
+    async def scrape_organization(self, url: str) -> ScrapedOrgData:
         """
         Scrape organization data from a given URL
         """
         try:
-            with sync_playwright() as p:
-                browser = p.chromium.launch(headless=True)
-                page = browser.new_page()
+            async with async_playwright() as p:
+                browser = await p.chromium.launch(headless=True)
+                page = await browser.new_page()
 
                 # Navigate to the main page
-                page.goto(url, wait_until="networkidle")
-                html = page.content()
-                text = page.inner_text("body")
+                await page.goto(url, wait_until="networkidle")
+                html = await page.content()
+                text = await page.inner_text("body")
                 clean_text = text.replace("\n", " ")
 
                 # Extract sublinks for additional scraping
@@ -32,13 +32,13 @@ class OrganizationScraper:
                 additional_content = []
                 for i, sub_url in enumerate(crawled_urls[:3]):  # Limit to 3 subpages
                     try:
-                        page.goto(sub_url, wait_until="networkidle")
-                        sub_text = page.inner_text("body")
+                        await page.goto(sub_url, wait_until="networkidle")
+                        sub_text = await page.inner_text("body")
                         additional_content.append(sub_text.replace("\n", " "))
                     except Exception as e:
                         logger.warning(f"Failed to scrape {sub_url}: {e}")
 
-                browser.close()
+                await browser.close()
 
                 # Combine all content
                 full_content = clean_text + " " + " ".join(additional_content)

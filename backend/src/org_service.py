@@ -62,7 +62,7 @@ class OrganizationService:
 
             try:
                 # Scrape the organization
-                scraped_data = self.scraper.scrape_organization(scrape_request["website_url"])
+                scraped_data = await self.scraper.scrape_organization(scrape_request["website_url"])
 
                 # Create the organization
                 org_data = {

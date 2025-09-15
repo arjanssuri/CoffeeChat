@@ -1,6 +1,7 @@
 {
-  "/get-started/page": "app/get-started/page.js",
   "/page": "app/page.js",
+  "/get-started/page": "app/get-started/page.js",
   "/dashboard/page": "app/dashboard/page.js",
-  "/applications/page": "app/applications/page.js"
+  "/applications/page": "app/applications/page.js",
+  "/applications/[id]/edit/page": "app/applications/[id]/edit/page.js"
 }

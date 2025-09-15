@@ -64,10 +64,13 @@ class OrganizationService:
                 # Scrape the organization
                 scraped_data = await self.scraper.scrape_organization(scrape_request["website_url"])
 
-                # Create the organization
+                # Use the requested name if scraper returns "Unknown Organization"
+                final_name = scraped_data.name if scraped_data.name != "Unknown Organization" else scrape_request["org_name"]
+
+                # Prepare organization data
                 org_data = {
                     "school_id": scrape_request["school_id"],
-                    "name": scraped_data.name,
+                    "name": final_name,
                     "type": scraped_data.type or scrape_request.get("suggested_type", OrgType.CLUB),
                     "description": scraped_data.description,
                     "website_url": scrape_request["website_url"],
@@ -77,8 +80,20 @@ class OrganizationService:
                     "is_verified": False  # Requires manual verification
                 }
 
-                org_response = self.supabase.table("organizations").insert(org_data).execute()
-                organization = org_response.data[0]
+                # Check if organization already exists by name or website URL
+                existing_response = self.supabase.table("organizations").select("*").eq("school_id", scrape_request["school_id"]).or_(f'name.eq.{final_name},website_url.eq.{scrape_request["website_url"]}').execute()
+
+                if existing_response.data:
+                    # Update existing organization
+                    existing_org = existing_response.data[0]
+                    org_response = self.supabase.table("organizations").update(org_data).eq("id", existing_org["id"]).execute()
+                    organization = org_response.data[0]
+                    logger.info(f"Updated existing organization: {final_name}")
+                else:
+                    # Create new organization
+                    org_response = self.supabase.table("organizations").insert(org_data).execute()
+                    organization = org_response.data[0]
+                    logger.info(f"Created new organization: {final_name}")
 
                 # Update scrape request as completed
                 self.supabase.table("org_scrape_requests").update({

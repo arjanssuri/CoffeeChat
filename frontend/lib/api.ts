@@ -1,3 +1,5 @@
+import { FoundryEvent } from './calendar'
+
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
 export interface AuthResponse {
@@ -12,6 +14,23 @@ export interface AuthResponse {
     refresh_token: string;
     expires_at?: number;
   };
+}
+
+export interface ChatRequest {
+  message: string
+  essay_content: string
+  context?: string
+}
+
+export interface ChatResponse {
+  response: string
+  suggestions?: string[]
+  analysis?: {
+    word_count?: number
+    readability_score?: number
+    tone_analysis?: string
+    structure_feedback?: string
+  }
 }
 
 export interface SignInRequest {
@@ -93,6 +112,66 @@ class ApiClient {
 
   async getCurrentUser(): Promise<{ user: any }> {
     return this.request<{ user: any }>('/auth/user');
+  }
+
+  async sendChatMessage(data: ChatRequest): Promise<ChatResponse> {
+    return this.request<ChatResponse>('/api/chat/analyze-essay', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  }
+
+  async quickHelp(data: ChatRequest): Promise<ChatResponse> {
+    return this.request<ChatResponse>('/api/chat/quick-help', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  }
+
+  async getFoundryEvents(): Promise<FoundryEvent[]> {
+    try {
+      return this.request<FoundryEvent[]>('/api/events/foundry')
+    } catch (error) {
+      console.error('Error fetching Foundry events:', error)
+      // Return mock data for demo purposes
+      return [
+        {
+          event_name: "Tech Networking Night",
+          event_date: "2024-01-20",
+          event_time: "18:00",
+          club_name: "TPEO",
+          location: "GDC 1.304",
+          description: "Connect with fellow engineers and product managers"
+        },
+        {
+          event_name: "Design Workshop",
+          event_date: "2024-01-22",
+          event_time: "19:00", 
+          club_name: "TPEO",
+          location: "GDC 2.216",
+          description: "Learn advanced UX/UI design principles"
+        },
+        {
+          event_name: "Product Management 101",
+          event_date: "2024-01-25",
+          event_time: "20:00",
+          club_name: "TPEO",
+          location: "Virtual",
+          description: "Introduction to product management fundamentals"
+        }
+      ]
+    }
+  }
+
+  async syncFoundryWithCalendar(): Promise<{ success: boolean; message: string }> {
+    try {
+      return this.request<{ success: boolean; message: string }>('/api/events/sync-calendar', {
+        method: 'POST',
+      })
+    } catch (error) {
+      console.error('Error syncing events:', error)
+      return { success: false, message: 'Failed to sync events' }
+    }
   }
 }
 

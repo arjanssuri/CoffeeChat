@@ -1494,3 +1494,22 @@ NotImplementedError
 2025-09-14 18:54:58,100 [INFO] Server starting; branch=master
 2025-09-14 18:55:02,030 [INFO] HTTP Request: GET https://arjanssuri.usw-23.palantirfoundry.com/api/v2/datasets/ri.foundry.main.dataset.65e79f76-ecf3-474b-b98e-3aa5f670c071/readTable?format=CSV&branchName=master "HTTP/1.1 200 OK"
 2025-09-14 18:55:21,523 [INFO] Server starting; branch=master
+2025-09-14 18:55:24,111 [INFO] HTTP Request: GET https://arjanssuri.usw-23.palantirfoundry.com/api/v2/datasets/ri.foundry.main.dataset.22bdd58a-35ea-44c8-a833-1bd2b971ee75/readTable?format=CSV&branchName=master "HTTP/1.1 200 OK"
+2025-09-14 18:56:27,513 [INFO] Server starting; branch=master
+2025-09-14 18:56:41,170 [INFO] Server starting; branch=master
+2025-09-14 18:56:54,744 [INFO] Server starting; branch=master
+2025-09-14 18:56:56,075 [INFO] HTTP Request: GET https://arjanssuri.usw-23.palantirfoundry.com/api/v2/datasets/ri.foundry.main.dataset.be6a4779-3aa1-48af-9f96-d7f74d0c99f3/readTable?format=CSV&branchName=master "HTTP/1.1 200 OK"
+2025-09-14 18:57:30,083 [INFO] Server starting; branch=master
+2025-09-14 18:57:36,210 [INFO] Server starting; branch=master
+2025-09-14 18:57:51,319 [INFO] Server starting; branch=master
+2025-09-14 18:57:53,614 [INFO] HTTP Request: GET https://arjanssuri.usw-23.palantirfoundry.com/api/v2/datasets/ri.foundry.main.dataset.be6a4779-3aa1-48af-9f96-d7f74d0c99f3/readTable?format=CSV&branchName=master "HTTP/1.1 200 OK"
+2025-09-14 18:58:08,060 [INFO] Server starting; branch=master
+2025-09-14 18:58:09,337 [INFO] HTTP Request: GET https://arjanssuri.usw-23.palantirfoundry.com/api/v2/datasets/ri.foundry.main.dataset.be6a4779-3aa1-48af-9f96-d7f74d0c99f3/readTable?format=CSV&branchName=master "HTTP/1.1 200 OK"
+2025-09-14 18:58:58,347 [INFO] Server starting; branch=master
+2025-09-14 18:59:05,404 [INFO] Server starting; branch=master
+2025-09-14 18:59:06,951 [INFO] HTTP Request: GET https://arjanssuri.usw-23.palantirfoundry.com/api/v2/datasets/ri.foundry.main.dataset.be6a4779-3aa1-48af-9f96-d7f74d0c99f3/readTable?format=CSV&branchName=master "HTTP/1.1 200 OK"
+2025-09-14 19:00:11,891 [INFO] Server starting; branch=master
+2025-09-14 19:00:51,526 [INFO] Server starting; branch=master
+2025-09-14 19:00:56,511 [INFO] Server starting; branch=master
+2025-09-14 19:01:05,896 [INFO] Server starting; branch=master
+2025-09-14 19:01:41,219 [INFO] Server starting; branch=master

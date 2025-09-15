@@ -58,7 +58,7 @@ export default function ApplicationEditor({ params }: { params: { id: string } }
     {
       id: '1',
       role: 'assistant',
-      content: 'Hi! I\'m here to help you with your essay. I can help you brainstorm ideas, improve your writing, check grammar, and provide feedback. What would you like to work on?',
+      content: 'Hi! I\'m Goose, your AI writing assistant. I can help you brainstorm ideas, improve your writing, check grammar, and provide feedback. What would you like to work on?',
       timestamp: new Date()
     }
   ])
@@ -324,7 +324,7 @@ export default function ApplicationEditor({ params }: { params: { id: string } }
                       id="essay-title"
                       value={newEssay.title}
                       onChange={(e) => setNewEssay(prev => ({ ...prev, title: e.target.value }))}
-                      placeholder="Personal Statement"
+                      placeholder={`Essay #${essays.length + 1}`}
                     />
                   </div>
                   <div>
@@ -333,7 +333,7 @@ export default function ApplicationEditor({ params }: { params: { id: string } }
                       id="essay-prompt"
                       value={newEssay.prompt}
                       onChange={(e) => setNewEssay(prev => ({ ...prev, prompt: e.target.value }))}
-                      placeholder="Describe a challenge you've overcome..."
+                      placeholder="What's a funny story about yourself?"
                       rows={3}
                     />
                   </div>
@@ -421,8 +421,8 @@ export default function ApplicationEditor({ params }: { params: { id: string } }
         <div className="w-80 bg-white/50 border-l border-[#e6d5c3] flex flex-col">
           <div className="p-4 border-b border-[#e6d5c3]">
             <h2 className="text-lg font-medium text-[#4a3728] flex items-center">
-              <MessageCircle className="h-5 w-5 mr-2" />
-              AI Writing Assistant
+              <Image src="/images/goose-logo.png" alt="Goose" width={20} height={20} className="mr-2" />
+              Goose AI Assistant
             </h2>
           </div>
           

@@ -27,7 +27,7 @@ interface Application {
 }
 
 export default function ApplicationsPage() {
-  const { user, loading, signOut } = useAuth()
+  const { user, loading, profileComplete, signOut } = useAuth()
   const router = useRouter()
   const searchParams = useSearchParams()
   const [applications, setApplications] = useState<Application[]>([])
@@ -42,8 +42,10 @@ export default function ApplicationsPage() {
   useEffect(() => {
     if (!loading && !user) {
       router.push("/signin")
+    } else if (!loading && user && profileComplete === false) {
+      router.push("/profile-setup")
     }
-  }, [user, loading, router])
+  }, [user, loading, profileComplete, router])
 
   useEffect(() => {
     if (searchParams.get('new') === 'true') {

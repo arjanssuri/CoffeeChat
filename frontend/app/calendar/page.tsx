@@ -21,6 +21,7 @@ export default function Calendar() {
   const [loadingEvents, setLoadingEvents] = useState(true)
   const [isCalendarConnected, setIsCalendarConnected] = useState(false)
   const [addedEvents, setAddedEvents] = useState<Set<string>>(new Set())
+  const [hasShownFoundryEventsToast, setHasShownFoundryEventsToast] = useState(false)
 
   useEffect(() => {
     if (!loading && !user) {
@@ -48,11 +49,12 @@ export default function Calendar() {
         setFoundryEvents(foundryEventsData)
 
         // Show toast notifications for new events (only first time)
-        if (foundryEventsData.length > 0) {
+        if (foundryEventsData.length > 0 && !hasShownFoundryEventsToast) {
           toast.success(`Found ${foundryEventsData.length} club events!`, {
             duration: 3000,
             position: 'top-right',
           })
+          setHasShownFoundryEventsToast(true)
         }
       } catch (error) {
         console.error('Error fetching events:', error)

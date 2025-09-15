@@ -1,19 +1,29 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List, Optional
 import os
+import sys
 from dotenv import load_dotenv
+
+# Add src directory to path
+sys.path.append(os.path.join(os.path.dirname(__file__), 'src'))
+
+from models import ScrapeRequestCreate, OrgType, UserProfileCreate, UserProfileUpdate
+from org_service import OrganizationService
+from user_service import UserService
 
 # Load environment variables
 load_dotenv()
 
 app = FastAPI(title="CoffeeChat API", version="1.0.0")
+org_service = OrganizationService()
+user_service = UserService()
 
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],  # Frontend URL
+    allow_origins=["http://localhost:3000", "http://localhost:3001"],  # Frontend URLs
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -126,6 +136,143 @@ async def quick_help(request: ChatRequest):
         response=f"Quick help: {request.message}. Consider revising for clarity and impact.",
         suggestions=["Use active voice", "Vary sentence length"]
     )
+
+# Organization and scraping endpoints
+@app.get("/api/organizations/{school_id}")
+async def get_organizations(school_id: str):
+    """Get all organizations for a school"""
+    try:
+        organizations = await org_service.get_organizations_by_school(school_id)
+        return {"organizations": organizations}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/organizations/{school_id}/popular")
+async def get_popular_organizations(school_id: str, limit: int = 10):
+    """Get popular organizations at a school"""
+    try:
+        organizations = await org_service.get_popular_organizations(school_id, limit)
+        return {"organizations": organizations}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/organizations/{school_id}/search")
+async def search_organizations(school_id: str, q: str):
+    """Search organizations by name"""
+    try:
+        organizations = await org_service.search_organizations(school_id, q)
+        return {"organizations": organizations}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/scrape-requests")
+async def create_scrape_request(
+    request: ScrapeRequestCreate,
+    user_id: str,
+    school_id: str,
+    background_tasks: BackgroundTasks
+):
+    """Submit a new organization for scraping"""
+    try:
+        # Create the scrape request
+        scrape_request = await org_service.create_scrape_request(
+            user_id=user_id,
+            school_id=school_id,
+            org_name=request.org_name,
+            website_url=request.website_url,
+            suggested_type=request.suggested_type
+        )
+
+        # Process in background
+        background_tasks.add_task(
+            org_service.process_scrape_request,
+            scrape_request["id"]
+        )
+
+        return {
+            "message": "Scrape request submitted successfully",
+            "request_id": scrape_request["id"]
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/scrape-requests/{user_id}")
+async def get_user_scrape_requests(user_id: str):
+    """Get all scrape requests for a user"""
+    try:
+        requests = await org_service.get_scrape_requests_by_user(user_id)
+        return {"requests": requests}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/scrape-requests/{request_id}/process")
+async def process_scrape_request(request_id: str, background_tasks: BackgroundTasks):
+    """Manually trigger processing of a scrape request"""
+    try:
+        background_tasks.add_task(
+            org_service.process_scrape_request,
+            request_id
+        )
+        return {"message": "Processing started"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/admin/scrape-requests/pending")
+async def get_pending_scrape_requests():
+    """Get all pending scrape requests (admin endpoint)"""
+    try:
+        requests = await org_service.get_pending_scrape_requests()
+        return {"requests": requests}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# User profile endpoints
+@app.get("/api/schools")
+def get_schools():
+    """Get all schools for dropdown selection"""
+    try:
+        schools = user_service.get_all_schools()
+        return {"schools": schools}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/users/{user_id}/profile")
+async def create_user_profile(user_id: str, profile: UserProfileCreate):
+    """Create or update user profile"""
+    try:
+        profile_data = profile.dict()
+        user_profile = await user_service.create_user_profile(user_id, profile_data)
+        return {"profile": user_profile}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/users/{user_id}/profile")
+async def get_user_profile(user_id: str):
+    """Get user profile with school information"""
+    try:
+        profile = await user_service.get_user_profile(user_id)
+        if not profile:
+            raise HTTPException(status_code=404, detail="Profile not found")
+        return {"profile": profile}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.patch("/api/users/{user_id}/profile")
+async def update_user_profile(user_id: str, updates: UserProfileUpdate):
+    """Update user profile"""
+    try:
+        update_data = {k: v for k, v in updates.dict().items() if v is not None}
+        if not update_data:
+            raise HTTPException(status_code=400, detail="No valid fields to update")
+
+        profile = await user_service.update_user_profile(user_id, update_data)
+        return {"profile": profile}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 if __name__ == "__main__":
     import uvicorn

@@ -1,10 +1,12 @@
-from fastapi import FastAPI, HTTPException, BackgroundTasks
+from fastapi import FastAPI, HTTPException, BackgroundTasks, File, UploadFile, Form
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List, Optional
 import os
 import sys
 from dotenv import load_dotenv
+import io
+import PyPDF2
 
 # Add src directory to path
 sys.path.append(os.path.join(os.path.dirname(__file__), 'src'))
@@ -138,6 +140,15 @@ async def quick_help(request: ChatRequest):
     )
 
 # Organization and scraping endpoints
+@app.get("/api/organizations/search")
+async def search_organizations(q: str, school_id: str = "d0709d1b-2b0d-4eb9-83ee-ebcef586d7e0"):
+    """Search organizations by name"""
+    try:
+        organizations = await org_service.search_organizations(school_id, q)
+        return {"organizations": organizations}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.get("/api/organizations/{school_id}")
 async def get_organizations(school_id: str):
     """Get all organizations for a school"""
@@ -156,14 +167,6 @@ async def get_popular_organizations(school_id: str, limit: int = 10):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.get("/api/organizations/{school_id}/search")
-async def search_organizations(school_id: str, q: str):
-    """Search organizations by name"""
-    try:
-        organizations = await org_service.search_organizations(school_id, q)
-        return {"organizations": organizations}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/api/scrape-requests")
 async def create_scrape_request(
@@ -269,6 +272,74 @@ async def update_user_profile(user_id: str, updates: UserProfileUpdate):
 
         profile = await user_service.update_user_profile(user_id, update_data)
         return {"profile": profile}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# Resume endpoints
+@app.post("/api/users/{user_id}/resume")
+async def upload_resume(user_id: str, file: UploadFile = File(...)):
+    """Upload and process resume file"""
+    try:
+        # Validate file type
+        if not file.filename.endswith(('.pdf', '.txt', '.doc', '.docx')):
+            raise HTTPException(status_code=400, detail="Unsupported file type. Please upload PDF, TXT, DOC, or DOCX files.")
+
+        # Read file content
+        content = await file.read()
+        resume_text = ""
+
+        # Extract text based on file type
+        if file.filename.endswith('.pdf'):
+            try:
+                pdf_reader = PyPDF2.PdfReader(io.BytesIO(content))
+                if pdf_reader.is_encrypted:
+                    raise HTTPException(status_code=400, detail="Encrypted PDFs are not supported.")
+                for page in pdf_reader.pages:
+                    resume_text += page.extract_text() + "\n"
+            except PyPDF2.errors.PdfReadError as e:
+                raise HTTPException(status_code=400, detail=f"Error reading PDF: {str(e)}")
+            except Exception as e:
+                raise HTTPException(status_code=500, detail=f"An unexpected error occurred while processing the PDF: {str(e)}")
+        elif file.filename.endswith('.txt'):
+            resume_text = content.decode('utf-8')
+        else:
+            # For DOC/DOCX files, we'll need python-docx or similar
+            # For now, return an error for these formats
+            raise HTTPException(status_code=400, detail="DOC/DOCX files not yet supported. Please upload PDF or TXT files.")
+
+        # Update user profile with resume text
+        update_data = {"resume_text": resume_text.strip()}
+        profile = await user_service.update_user_profile(user_id, update_data)
+
+        return {
+            "message": "Resume uploaded successfully",
+            "filename": file.filename,
+            "text_length": len(resume_text.strip())
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/users/{user_id}/resume/status")
+async def get_resume_status(user_id: str):
+    """Check if user has uploaded a resume"""
+    try:
+        profile = await user_service.get_user_profile(user_id)
+        if not profile:
+            raise HTTPException(status_code=404, detail="Profile not found")
+
+        resume_text = profile.get("resume_text", "") if profile else ""
+        has_resume = bool(resume_text.strip()) if resume_text else False
+        resume_length = len(resume_text.strip()) if resume_text else 0
+
+        return {
+            "has_resume": has_resume,
+            "resume_length": resume_length,
+            "status": "uploaded" if has_resume else "not_uploaded"
+        }
     except HTTPException:
         raise
     except Exception as e:

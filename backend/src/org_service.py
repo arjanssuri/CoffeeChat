@@ -81,7 +81,12 @@ class OrganizationService:
                 }
 
                 # Check if organization already exists by name or website URL
-                existing_response = self.supabase.table("organizations").select("*").eq("school_id", scrape_request["school_id"]).or_(f'name.eq.{final_name},website_url.eq.{scrape_request["website_url"]}').execute()
+                # First check by name
+                existing_by_name = self.supabase.table("organizations").select("*").eq("school_id", scrape_request["school_id"]).eq("name", final_name).execute()
+                # Then check by website URL if no match by name
+                existing_by_url = self.supabase.table("organizations").select("*").eq("school_id", scrape_request["school_id"]).eq("website_url", scrape_request["website_url"]).execute() if not existing_by_name.data else None
+
+                existing_response = existing_by_name if existing_by_name.data else existing_by_url
 
                 if existing_response.data:
                     # Update existing organization

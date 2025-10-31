@@ -163,6 +163,52 @@ export default function ApplicationsPage() {
         return
       }
 
+      // If USIT/QMI, add events to calendar
+      if (finalTitle === 'USIT/QMI') {
+        const usitEvents = [
+          { title: 'USIT/QMI Application Opens', start: '2025-08-27T00:00:00' },
+          { title: 'USIT/QMI Info Session', start: '2025-08-27T19:00:00', end: '2025-08-27T20:00:00' },
+          { title: 'USIT/QMI Info Session', start: '2025-08-28T18:00:00', end: '2025-08-28T19:00:00' },
+          { title: 'USIT/QMI Coffee Chats', start: '2025-08-28T17:00:00', end: '2025-08-28T18:00:00' },
+          { title: 'USIT/QMI Coffee Chats', start: '2025-08-29T14:30:00', end: '2025-08-29T15:30:00' },
+          { title: 'USIT/QMI Coffee Chats', start: '2025-08-31T11:00:00', end: '2025-08-31T12:00:00' },
+          { title: 'USIT/QMI Women\'s Brunch', start: '2025-08-30T10:00:00', end: '2025-08-30T11:30:00' },
+          { title: 'USIT/QMI Application Closes', start: '2025-09-02T23:59:00' },
+        ];
+
+        for (const event of usitEvents) {
+          try {
+            await calendarService.createEvent(event);
+          } catch (error) {
+            console.error(`Error creating event ${event.title}:`, error)
+          }
+        }
+      } else if (finalTitle === 'Texas Convergent') {
+        const convergentEvents = [
+          { title: 'Texas Convergent Info Session #1', start: '2025-08-27T18:00:00', end: '2025-08-27T20:00:00' },
+          { title: 'Texas Convergent Coffee Chat #1', start: '2025-08-27T17:00:00', end: '2025-08-27T19:00:00' },
+          { title: 'Texas Convergent Info Session #2', start: '2025-09-02T19:00:00', end: '2025-09-02T20:00:00' },
+          { title: 'Texas Convergent Coffee Chat #2', start: '2025-09-02T17:00:00', end: '2025-09-02T19:00:00' },
+          { title: 'Texas Convergent Info Session #3', start: '2025-09-03T17:00:00', end: '2025-09-03T18:00:00' },
+          { title: 'Texas Convergent Game Night Social', start: '2025-09-04T18:00:00', end: '2025-09-04T20:00:00' },
+          { title: 'Texas Convergent Application Office Hours', start: '2025-09-05T10:00:00', end: '2025-09-05T12:00:00' },
+          { title: 'Texas Convergent Application Deadline', start: '2025-09-05T23:59:00' },
+        ];
+
+        for (const event of convergentEvents) {
+          try {
+            const createdEvent = await calendarService.createEvent(event);
+            if (createdEvent) {
+              const storedEvents = JSON.parse(localStorage.getItem('customEvents') || '[]');
+              storedEvents.push(createdEvent);
+              localStorage.setItem('customEvents', JSON.stringify(storedEvents));
+            }
+          } catch (error) {
+            console.error(`Error creating event ${event.title}:`, error)
+          }
+        }
+      }
+
       setApplications(prev => [data, ...prev])
       setNewApp({ title: "", school: "", deadline: "", website_url: "", customTitle: "" })
       setShowNewDialog(false)
@@ -256,6 +302,12 @@ export default function ApplicationsPage() {
                 className="text-[#8b7355] hover:text-[#4a3728] font-light"
               >
                 Calendar
+              </Link>
+              <Link
+                href="/profile"
+                className="text-[#8b7355] hover:text-[#4a3728] font-light"
+              >
+                Profile
               </Link>
               
               <div className="flex items-center space-x-4">

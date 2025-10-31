@@ -9,19 +9,35 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Calendar as CalendarIcon, Plus, Bell } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
-import { CalendarEvent, FoundryEvent, calendarService } from "@/lib/calendar"
-import { apiClient } from "@/lib/api"
+import { CalendarEvent, calendarService } from "@/lib/calendar"
 import toast, { Toaster } from 'react-hot-toast'
+
+const staticEvents: CalendarEvent[] = [
+  { id: 'usit-1', title: 'USIT/QMI Application Opens', start: '2025-08-27T00:00:00', end: '2025-08-27T00:00:00' },
+  { id: 'usit-2', title: 'USIT/QMI Info Session', start: '2025-08-27T19:00:00', end: '2025-08-27T20:00:00' },
+  { id: 'usit-3', title: 'USIT/QMI Info Session', start: '2025-08-28T18:00:00', end: '2025-08-28T19:00:00' },
+  { id: 'usit-4', title: 'USIT/QMI Coffee Chats', start: '2025-08-28T17:00:00', end: '2025-08-28T18:00:00' },
+  { id: 'usit-5', title: 'USIT/QMI Coffee Chats', start: '2025-08-29T14:30:00', end: '2025-08-29T15:30:00' },
+  { id: 'usit-6', title: 'USIT/QMI Coffee Chats', start: '2025-08-31T11:00:00', end: '2025-08-31T12:00:00' },
+  { id: 'usit-7', title: 'USIT/QMI Women\'s Brunch', start: '2025-08-30T10:00:00', end: '2025-08-30T11:30:00' },
+  { id: 'usit-8', title: 'USIT/QMI Application Closes', start: '2025-09-02T23:59:00', end: '2025-09-02T23:59:00' },
+  { id: 'convergent-1', title: 'Texas Convergent Info Session #1', start: '2025-08-27T18:00:00', end: '2025-08-27T19:00:00' },
+  { id: 'convergent-2', title: 'Texas Convergent Coffee Chat #1', start: '2025-08-27T17:00:00', end: '2025-08-27T19:00:00' },
+  { id: 'convergent-3', title: 'Texas Convergent Info Session #2', start: '2025-09-02T19:00:00', end: '2025-09-02T20:00:00' },
+  { id: 'convergent-4', title: 'Texas Convergent Coffee Chat #2', start: '2025-09-02T17:00:00', end: '2025-09-02T19:00:00' },
+  { id: 'convergent-5', title: 'Texas Convergent Info Session #3', start: '2025-09-03T17:00:00', end: '2025-09-03T18:00:00' },
+  { id: 'convergent-6', title: 'Texas Convergent Game Night Social', start: '2025-09-04T18:00:00', end: '2025-09-04T20:00:00' },
+  { id: 'convergent-7', title: 'Texas Convergent Application Office Hours', start: '2025-09-05T10:00:00', end: '2025-09-05T12:00:00' },
+  { id: 'convergent-8', title: 'Texas Convergent Application Deadline', start: '2025-09-05T23:59:00', end: '2025-09-05T23:59:00' },
+];
 
 export default function Calendar() {
   const { user, loading, signOut } = useAuth()
   const router = useRouter()
   const [events, setEvents] = useState<CalendarEvent[]>([])
-  const [foundryEvents, setFoundryEvents] = useState<FoundryEvent[]>([])
   const [loadingEvents, setLoadingEvents] = useState(true)
   const [isCalendarConnected, setIsCalendarConnected] = useState(false)
   const [addedEvents, setAddedEvents] = useState<Set<string>>(new Set())
-  const [hasShownFoundryEventsToast, setHasShownFoundryEventsToast] = useState(false)
 
   useEffect(() => {
     if (!loading && !user) {
@@ -34,28 +50,19 @@ export default function Calendar() {
       try {
         setLoadingEvents(true)
 
+        let allEvents: CalendarEvent[] = [];
         // Check if user is already authenticated to Google Calendar
         if (calendarService.isAuthenticated()) {
           const calendarEvents = await calendarService.getEvents()
-          setEvents(calendarEvents)
+          allEvents = [...allEvents, ...calendarEvents];
           setIsCalendarConnected(true)
         } else {
           // User not authenticated - don't trigger auth popup automatically
           setIsCalendarConnected(false)
         }
 
-        // Fetch Foundry events from API
-        const foundryEventsData = await apiClient.getFoundryEvents()
-        setFoundryEvents(foundryEventsData)
+        setEvents(allEvents);
 
-        // Show toast notifications for new events (only first time)
-        if (foundryEventsData.length > 0 && !hasShownFoundryEventsToast) {
-          toast.success(`Found ${foundryEventsData.length} club events!`, {
-            duration: 3000,
-            position: 'top-right',
-          })
-          setHasShownFoundryEventsToast(true)
-        }
       } catch (error) {
         console.error('Error fetching events:', error)
         toast.error('Failed to load calendar events')
@@ -78,7 +85,7 @@ export default function Calendar() {
     try {
       // This will trigger Google sign-in and then fetch events
       const calendarEvents = await calendarService.getEvents()
-      setEvents(calendarEvents)
+      setEvents([...events, ...calendarEvents]);
       setIsCalendarConnected(true)
       toast.success('Google Calendar connected!')
     } catch (error) {
@@ -87,12 +94,11 @@ export default function Calendar() {
     }
   }
 
-  const handleAddToCalendar = async (foundryEvent: FoundryEvent) => {
-    const eventKey = `${foundryEvent.event_name}-${foundryEvent.event_date}-${foundryEvent.club_name}`
+  const handleAddToCalendar = async (event: CalendarEvent) => {
+    const eventKey = event.id;
 
     try {
-      const calendarEvent = calendarService.convertFoundryEventToCalendar(foundryEvent)
-      const eventId = await calendarService.createEvent(calendarEvent)
+      const eventId = await calendarService.createEvent(event)
 
       if (eventId) {
         toast.success('Event added to your calendar!')
@@ -111,8 +117,8 @@ export default function Calendar() {
     }
   }
 
-  const isEventAdded = (foundryEvent: FoundryEvent): boolean => {
-    const eventKey = `${foundryEvent.event_name}-${foundryEvent.event_date}-${foundryEvent.club_name}`
+  const isEventAdded = (event: CalendarEvent): boolean => {
+    const eventKey = event.id;
     return addedEvents.has(eventKey)
   }
 
@@ -166,6 +172,12 @@ export default function Calendar() {
               >
                 Calendar
               </Link>
+              <Link
+                href="/profile"
+                className="text-[#8b7355] hover:text-[#4a3728] font-light"
+              >
+                Profile
+              </Link>
               
               <div className="flex items-center space-x-4">
                 <div className="flex items-center space-x-2">
@@ -205,7 +217,7 @@ export default function Calendar() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Foundry Events */}
+          {/* Club Events */}
           <Card className="bg-white/80 backdrop-blur-sm border-[#e6d5c3]">
             <CardHeader>
               <CardTitle className="text-xl font-light text-[#4a3728] flex items-center">
@@ -214,22 +226,17 @@ export default function Calendar() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {loadingEvents ? (
-                <div className="text-[#8b7355] font-light">Loading events...</div>
-              ) : foundryEvents.length === 0 ? (
+              {staticEvents.length === 0 ? (
                 <div className="text-[#8b7355] font-light">No upcoming club events</div>
               ) : (
                 <div className="space-y-4">
-                  {foundryEvents.map((event, index) => (
+                  {staticEvents.map((event, index) => (
                     <div key={index} className="border border-[#e6d5c3] rounded-lg p-4">
                       <div className="flex justify-between items-start mb-2">
-                        <h3 className="font-medium text-[#4a3728]">{event.event_name}</h3>
-                        <span className="text-sm text-[#8b7355] bg-[#f5ebe1] px-2 py-1 rounded">
-                          {event.club_name}
-                        </span>
+                        <h3 className="font-medium text-[#4a3728]">{event.title}</h3>
                       </div>
                       <p className="text-sm text-[#8b7355] mb-2">
-                        {new Date(`${event.event_date} ${event.event_time}`).toLocaleDateString('en-US', {
+                        {new Date(event.start).toLocaleDateString('en-US', {
                           weekday: 'long',
                           year: 'numeric',
                           month: 'long',
@@ -240,9 +247,6 @@ export default function Calendar() {
                       </p>
                       {event.location && (
                         <p className="text-sm text-[#8b7355] mb-2">📍 {event.location}</p>
-                      )}
-                      {event.description && (
-                        <p className="text-sm text-[#8b7355] mb-3">{event.description}</p>
                       )}
                       {isEventAdded(event) ? (
                         <Button
@@ -291,7 +295,7 @@ export default function Calendar() {
             <CardContent>
               {loadingEvents ? (
                 <div className="text-[#8b7355] font-light">Loading calendar...</div>
-              ) : !isCalendarConnected ? (
+              ) : !isCalendarConnected && events.length === 0 ? (
                 <div className="text-center py-8">
                   <CalendarIcon className="h-12 w-12 text-[#8b7355] mx-auto mb-4" />
                   <p className="text-[#8b7355] font-light mb-4">
@@ -309,7 +313,7 @@ export default function Calendar() {
                 <div className="text-[#8b7355] font-light">No upcoming events in your calendar</div>
               ) : (
                 <div className="space-y-4">
-                  {events.slice(0, 5).map((event) => (
+                  {events.map((event) => (
                     <div key={event.id} className="border border-[#e6d5c3] rounded-lg p-4">
                       <h3 className="font-medium text-[#4a3728] mb-1">{event.title}</h3>
                       <p className="text-sm text-[#8b7355] mb-2">
@@ -326,11 +330,6 @@ export default function Calendar() {
                       )}
                     </div>
                   ))}
-                  {events.length > 5 && (
-                    <p className="text-sm text-[#8b7355] text-center">
-                      And {events.length - 5} more events...
-                    </p>
-                  )}
                 </div>
               )}
             </CardContent>

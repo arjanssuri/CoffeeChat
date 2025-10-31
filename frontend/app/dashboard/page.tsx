@@ -32,6 +32,10 @@ export default function Dashboard() {
   const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([])
   const [isCalendarConnected, setIsCalendarConnected] = useState(false)
   const [userProfile, setUserProfile] = useState<any>(null)
+  const [applicationsWithOrgs, setApplicationsWithOrgs] = useState<any[]>([])
+  const [organizationsApplyingTo, setOrganizationsApplyingTo] = useState<any[]>([])
+  const [isIndexing, setIsIndexing] = useState(false)
+  const [resumeUploaded, setResumeUploaded] = useState(false)
 
   useEffect(() => {
     if (!loading && !user) {
@@ -47,6 +51,86 @@ export default function Dashboard() {
     }
   }, [user])
 
+  const indexOrganizations = async () => {
+    setIsIndexing(true)
+    // Simulate indexing for 5 seconds
+    setTimeout(() => {
+      setIsIndexing(false)
+      // Refetch applications with organization data
+      fetchApplicationsWithOrgs()
+    }, 5000)
+  }
+
+  const fetchApplicationsWithOrgs = async () => {
+    try {
+      // Fetch all applications
+      const { data: apps, error: appsError } = await supabase
+        .from('applications')
+        .select('*')
+        .eq('user_id', user?.id)
+
+      if (appsError) {
+        console.error('Error fetching applications:', appsError)
+        return
+      }
+
+      // For each application, fetch organization details
+      const appsWithOrgs = await Promise.all(
+        (apps || []).map(async (app) => {
+          try {
+            const orgResponse = await fetch(`http://localhost:8000/api/organizations/search?q=${encodeURIComponent(app.title)}`)
+            if (orgResponse.ok) {
+              const orgData = await orgResponse.json()
+              const org = orgData.organizations?.[0]
+              return {
+                ...app,
+                organization: org
+              }
+            }
+          } catch (error) {
+            console.error('Error fetching org data:', error)
+          }
+          return app
+        })
+      )
+
+      setApplicationsWithOrgs(appsWithOrgs)
+
+      // Extract unique organizations from applications
+      const uniqueOrgs = appsWithOrgs
+        .filter(app => app.organization)
+        .reduce((acc, app) => {
+          const existingOrg = acc.find(org => org.id === app.organization.id)
+          if (!existingOrg) {
+            acc.push({
+              ...app.organization,
+              deadline: app.deadline
+            })
+          } else if (app.deadline && (!existingOrg.deadline || new Date(app.deadline) < new Date(existingOrg.deadline))) {
+            existingOrg.deadline = app.deadline
+          }
+          return acc
+        }, [] as any[])
+
+      setOrganizationsApplyingTo(uniqueOrgs)
+    } catch (error) {
+      console.error('Error fetching applications with orgs:', error)
+    }
+  }
+
+  const checkResumeStatus = async () => {
+    try {
+      const response = await fetch(`http://localhost:8000/api/users/${user?.id}/resume/status`)
+      if (response.ok) {
+        const data = await response.json()
+        setResumeUploaded(data.uploaded || false)
+      }
+    } catch (error) {
+      console.error('Error checking resume status:', error)
+      setResumeUploaded(false)
+    }
+  }
+
   const fetchDashboardData = async () => {
     try {
       setIsLoadingData(true)
@@ -61,6 +145,12 @@ export default function Dashboard() {
       } catch (error) {
         console.error('Error fetching user profile:', error)
       }
+
+      // Fetch applications with organization data
+      await fetchApplicationsWithOrgs()
+
+      // Check resume upload status
+      await checkResumeStatus()
 
       // Fetch recent applications (last 3)
       const { data: recent, error: recentError } = await supabase
@@ -164,16 +254,24 @@ export default function Dashboard() {
               >
                 Calendar
               </Link>
+              <Link
+                href="/profile"
+                className="text-[#8b7355] hover:text-[#4a3728] font-light"
+              >
+                Profile
+              </Link>
 
               <div className="flex items-center space-x-4">
                 <div className="flex items-center space-x-2">
-                  <Avatar className="h-8 w-8">
-                    <AvatarImage src={userAvatar} alt={userName} />
-                    <AvatarFallback className="bg-[#4a3728] text-white text-sm">
-                      {userInitials}
-                    </AvatarFallback>
-                  </Avatar>
-                  <span className="text-sm font-medium text-[#4a3728]">{userName}</span>
+                  <Link href="/profile" className="flex items-center space-x-2 text-sm font-medium text-[#4a3728] hover:text-[#8b7355]">
+                    <Avatar className="h-8 w-8">
+                      <AvatarImage src={userAvatar} alt={userName} />
+                      <AvatarFallback className="bg-[#4a3728] text-white text-sm">
+                        {userInitials}
+                      </AvatarFallback>
+                    </Avatar>
+                    <span>{userName}</span>
+                  </Link>
                 </div>
                 
                 <Button
@@ -235,6 +333,11 @@ export default function Dashboard() {
                   <p className="text-xs text-[#8b7355] font-light">
                     Joined {new Date(user.created_at).toLocaleDateString()}
                   </p>
+                  {resumeUploaded && (
+                    <p className="text-xs text-green-600 font-medium mt-1">
+                      ✓ Resume uploaded
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -354,43 +457,57 @@ export default function Dashboard() {
 
         {/* Suggestions & Calendar */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Left: Suggestions */}
+          {/* Left: Organizations Applying To */}
           <Card className="bg-white/80 backdrop-blur-sm border-[#e6d5c3]">
             <CardHeader>
               <CardTitle className="text-xl font-light text-[#4a3728] flex items-center">
-                <FileText className="h-5 w-5 mr-2" />
-                Suggestions
+                <Building className="h-5 w-5 mr-2" />
+                Organizations Applying To
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                <div className="border border-[#e6d5c3] rounded-lg p-3">
-                  <h3 className="font-medium text-[#4a3728] text-sm mb-2">💡 Start Your Essays Early</h3>
-                  <p className="text-xs text-[#8b7355]">
-                    Begin working on your essays at least 2 weeks before the deadline for the best results.
-                  </p>
+              {isIndexing ? (
+                <div className="text-center py-8">
+                  <div className="animate-spin h-8 w-8 border-2 border-[#4a3728] border-t-transparent rounded-full mx-auto mb-4"></div>
+                  <p className="text-[#8b7355] font-light">Indexing websites for latest events and data...</p>
                 </div>
-                <div className="border border-[#e6d5c3] rounded-lg p-3">
-                  <h3 className="font-medium text-[#4a3728] text-sm mb-2">📝 Use the AI Assistant</h3>
-                  <p className="text-xs text-[#8b7355]">
-                    Try asking the AI chatbot for feedback on your essay structure and content.
-                  </p>
-                </div>
-                <div className="border border-[#e6d5c3] rounded-lg p-3">
-                  <h3 className="font-medium text-[#4a3728] text-sm mb-2">🎯 Set Reminders</h3>
-                  <p className="text-xs text-[#8b7355]">
-                    Add important deadlines to your calendar to stay on track.
-                  </p>
-                </div>
-                <Link href="/applications?new=true">
-                  <div className="border border-[#4a3728] rounded-lg p-3 hover:bg-[#f5ebe1] transition-colors cursor-pointer">
-                    <h3 className="font-medium text-[#4a3728] text-sm mb-2">+ Create New Application</h3>
-                    <p className="text-xs text-[#8b7355]">
-                      Ready to start? Create a new application to get started.
-                    </p>
+              ) : organizationsApplyingTo.length === 0 ? (
+                <div className="space-y-4">
+                  <div className="text-center py-4">
+                    <p className="text-[#8b7355] font-light mb-4">No organizations yet.</p>
+                    <Link href="/profile">
+                      <Button className="bg-[#4a3728] hover:bg-[#3d2e21] text-white">
+                        Add Organizations
+                      </Button>
+                    </Link>
                   </div>
-                </Link>
-              </div>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {organizationsApplyingTo.map((org) => (
+                    <div key={org.id} className="flex items-center justify-between p-3 border border-[#e6d5c3] rounded-lg hover:bg-[#f5ebe1] transition-colors">
+                      <div className="flex-1">
+                        <h3 className="font-medium text-[#4a3728] text-sm">{org.name}</h3>
+                        <p className="text-xs text-[#8b7355] mt-1">
+                          {org.type} • {org.school_name || 'UT Austin'}
+                        </p>
+                      </div>
+                      {org.deadline && (
+                        <div className="text-right">
+                          <p className="text-xs text-[#8b7355]">
+                            Deadline: {new Date(org.deadline).toLocaleDateString()}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                  <Link href="/profile">
+                    <div className="border border-[#4a3728] rounded-lg p-3 hover:bg-[#f5ebe1] transition-colors cursor-pointer text-center">
+                      <h3 className="font-medium text-[#4a3728] text-sm">+ Add Organization</h3>
+                    </div>
+                  </Link>
+                </div>
+              )}
             </CardContent>
           </Card>
 

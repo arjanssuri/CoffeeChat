@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
 import { User, GraduationCap } from "lucide-react"
 import { cn } from "@/lib/utils"
 import Image from "next/image"
@@ -32,7 +33,8 @@ export default function ProfileSetup() {
     last_name: "",
     email: user?.email || "",
     graduation_year: "",
-    major: ""
+    major: "",
+    resume_text: ""
   })
 
   const fetchSchools = useCallback(async () => {
@@ -128,6 +130,7 @@ export default function ProfileSetup() {
       [field]: value
     }))
   }
+
 
   if (loading || isLoading) {
     return (
@@ -305,6 +308,23 @@ export default function ProfileSetup() {
                     placeholder="e.g. Computer Science"
                   />
                 </div>
+              </div>
+
+              {/* Resume Text */}
+              <div className="space-y-2">
+                <Label htmlFor="resume_text" className="text-[#4a3728] font-medium">
+                  Resume Content (Optional)
+                </Label>
+                <Textarea
+                  id="resume_text"
+                  value={formData.resume_text}
+                  onChange={(e) => handleInputChange("resume_text", e.target.value)}
+                  className="border-[#e6d5c3] focus:border-[#4a3728] min-h-32"
+                  placeholder="Paste your resume content here..."
+                />
+                <p className="text-xs text-[#8b7355]">
+                  You can paste your resume content here for Goose to reference when helping with applications.
+                </p>
               </div>
 
               {/* Submit Button */}

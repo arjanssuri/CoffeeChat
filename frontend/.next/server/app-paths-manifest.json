@@ -1,6 +1,9 @@
 {
-  "/get-started/page": "app/get-started/page.js",
-  "/page": "app/page.js",
+  "/profile-setup/page": "app/profile-setup/page.js",
+  "/applications/[id]/edit/page": "app/applications/[id]/edit/page.js",
   "/dashboard/page": "app/dashboard/page.js",
-  "/applications/page": "app/applications/page.js"
+  "/applications/page": "app/applications/page.js",
+  "/calendar/page": "app/calendar/page.js",
+  "/profile/page": "app/profile/page.js",
+  "/api/chat/route": "app/api/chat/route.js"
 }

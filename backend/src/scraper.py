@@ -1,4 +1,5 @@
-from playwright.async_api import async_playwright
+import os
+import requests
 import re
 import logging
 from typing import Dict, List, Optional
@@ -8,49 +9,114 @@ logger = logging.getLogger(__name__)
 
 class OrganizationScraper:
     def __init__(self):
-        self.results = []
+        self.firecrawl_api_key = os.getenv('FIRECRAWL_API_KEY')
+        if not self.firecrawl_api_key:
+            raise ValueError("FIRECRAWL_API_KEY environment variable is required")
 
     async def scrape_organization(self, url: str) -> ScrapedOrgData:
         """
-        Scrape organization data from a given URL
+        Scrape organization data from a given URL using Firecrawl
         """
         try:
-            async with async_playwright() as p:
-                browser = await p.chromium.launch(headless=True)
-                page = await browser.new_page()
+            # Use Firecrawl to scrape the website
+            response = requests.post(
+                'https://api.firecrawl.dev/v0/scrape',
+                headers={
+                    'Authorization': f'Bearer {self.firecrawl_api_key}',
+                    'Content-Type': 'application/json'
+                },
+                json={
+                    'url': url,
+                    'pageOptions': {
+                        'onlyMainContent': True,
+                        'includeHtml': True
+                    },
+                    'extractorOptions': {
+                        'extractionSchema': {
+                            'type': 'object',
+                            'properties': {
+                                'organization_name': {
+                                    'type': 'string',
+                                    'description': 'The name of the organization'
+                                },
+                                'description': {
+                                    'type': 'string',
+                                    'description': 'Description or mission of the organization'
+                                },
+                                'contact_email': {
+                                    'type': 'string',
+                                    'description': 'Contact email for the organization'
+                                },
+                                'application_requirements': {
+                                    'type': 'string',
+                                    'description': 'Requirements to join or apply to the organization'
+                                },
+                                'application_deadline': {
+                                    'type': 'string',
+                                    'description': 'Application deadline if mentioned'
+                                }
+                            }
+                        }
+                    }
+                }
+            )
 
-                # Navigate to the main page
-                await page.goto(url, wait_until="networkidle")
-                html = await page.content()
-                text = await page.inner_text("body")
-                clean_text = text.replace("\n", " ")
+            if response.status_code != 200:
+                raise Exception(f"Firecrawl API error: {response.status_code} - {response.text}")
 
-                # Extract sublinks for additional scraping
-                crawled_urls = self._extract_internal_links(html, url)
+            data = response.json()
 
-                # Scrape additional pages for more context
-                additional_content = []
-                for i, sub_url in enumerate(crawled_urls[:3]):  # Limit to 3 subpages
-                    try:
-                        await page.goto(sub_url, wait_until="networkidle")
-                        sub_text = await page.inner_text("body")
-                        additional_content.append(sub_text.replace("\n", " "))
-                    except Exception as e:
-                        logger.warning(f"Failed to scrape {sub_url}: {e}")
+            # Extract content
+            content = data.get('data', {}).get('content', '')
+            html = data.get('data', {}).get('html', '')
+            extracted_data = data.get('data', {}).get('extract', {})
 
-                await browser.close()
+            # Use extracted data if available, otherwise parse content
+            org_name = extracted_data.get('organization_name') or self._extract_name_from_content(content, html)
+            description = extracted_data.get('description') or self._extract_description(content)
+            contact_email = extracted_data.get('contact_email') or self._extract_email(content)
+            requirements = extracted_data.get('application_requirements') or self._extract_requirements(content)
+            deadline = extracted_data.get('application_deadline') or self._extract_deadline(content)
 
-                # Combine all content
-                full_content = clean_text + " " + " ".join(additional_content)
+            # Determine organization type
+            org_type = self._determine_org_type(content, org_name)
 
-                # Extract organization data
-                org_data = self._extract_org_data(full_content, url)
-
-                return org_data
+            return ScrapedOrgData(
+                name=org_name or "Unknown Organization",
+                description=description,
+                type=org_type,
+                contact_email=contact_email,
+                application_requirements=requirements,
+                application_deadline=deadline
+            )
 
         except Exception as e:
             logger.error(f"Failed to scrape {url}: {e}")
             raise Exception(f"Scraping failed: {str(e)}")
+
+    def _extract_name_from_content(self, content: str, html: str) -> Optional[str]:
+        """Extract organization name from content and HTML"""
+        # Try to get from title tag first
+        title_match = re.search(r'<title>([^<]+)</title>', html, re.IGNORECASE)
+        if title_match:
+            title = title_match.group(1).strip()
+            # Clean up common suffixes
+            title = re.sub(r'\s*[-|–]\s*(Home|Welcome|Official Site).*$', '', title, flags=re.IGNORECASE)
+            if len(title) > 3:
+                return title
+
+        # Try to extract from headers in content
+        lines = content.split('\n')
+        for line in lines[:10]:  # Check first 10 lines
+            line = line.strip()
+            # Clean up markdown headers and extra characters
+            line = re.sub(r'^#+\s*', '', line)  # Remove markdown headers
+            line = re.sub(r'^[*\-#\s]+', '', line)  # Remove bullets, dashes, hashes
+            line = line.strip()
+            if len(line) > 3 and len(line) < 100:
+                return line
+
+        return None
 
     def _extract_internal_links(self, html: str, base_url: str) -> List[str]:
         """Extract internal links from HTML"""

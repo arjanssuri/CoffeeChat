@@ -4,7 +4,7 @@ CoffeeChat is a comprehensive college application management platform that helps
 
 ## Demo Video
 
-<div style="position: relative; padding-bottom: 62.5%; height: 0;"><iframe src="https://www.loom.com/embed/3f7c6a7f54494bf59201831ee79d16d9" frameborder="0" webkitallowfullscreen mozallowfullscreen allowfullscreen style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"></iframe></div>
+[![CoffeeChat Demo](https://cdn.loom.com/sessions/thumbnails/3f7c6a7f54494bf59201831ee79d16d9-with-play.gif)](https://www.loom.com/share/3f7c6a7f54494bf59201831ee79d16d9)
 
 ## Quick Start
 

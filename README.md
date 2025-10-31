@@ -2,6 +2,10 @@
 
 CoffeeChat is a comprehensive college application management platform that helps students track their applications, write essays with AI assistance, and manage deadlines. The platform integrates with Supabase for authentication and Foundry for AI-powered essay analysis and feedback.
 
+## Demo Video
+
+<div style="position: relative; padding-bottom: 62.5%; height: 0;"><iframe src="https://www.loom.com/embed/3f7c6a7f54494bf59201831ee79d16d9" frameborder="0" webkitallowfullscreen mozallowfullscreen allowfullscreen style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"></iframe></div>
+
 ## Quick Start
 
 1. **Install frontend dependencies:**
@@ -19,7 +23,7 @@ CoffeeChat is a comprehensive college application management platform that helps
 3. **Run the database setup:**
 
    - Copy contents of `supabase-schema.sql`
-   - Paste into Supabase Dashboard ’ SQL Editor ’ Run
+   - Paste into Supabase Dashboard > SQL Editor > Run
 4. **Start the development server:**
 
    ```bash
@@ -29,28 +33,27 @@ CoffeeChat is a comprehensive college application management platform that helps
 
 ## Features
 
-- = **Authentication**: Secure login with Supabase (email/password + Google OAuth)
-- =Ê **Dashboard**: User profile with Google avatar integration
-- =İ **Applications**: Create and manage college applications
-- 
-
- **Essay Editor**: Write essays with AI chatbot assistance
-
-- >  **AI Integration**: Foundry pipeline for advanced essay analysis
-  >
-- =ñ **Responsive Design**: Works on desktop and mobile
+- **Authentication**: Secure login with Supabase (email/password + Google OAuth)
+- **Dashboard**: User profile with Google avatar integration
+- **Applications**: Create and manage college applications
+- **Essay Editor**: Write essays with AI chatbot assistance
+- **AI Integration**: Foundry pipeline for advanced essay analysis
+- **Responsive Design**: Works on desktop and mobile
 
 ## Project Structure
 
 ```
- frontend/                 # Next.js React application
-    app/                 # Pages (dashboard, applications, editor)
-    components/ui/       # Reusable UI components
-    hooks/               # Custom React hooks (useAuth)
-    lib/                 # Utilities (Supabase client, API)
- backend/                 # Python backend (optional for AI)
-    src/                 # Foundry integration scripts
- supabase-schema.sql      # Database setup
+â”œâ”€â”€ frontend/                 # Next.js React application
+â”‚   â”œâ”€â”€ app/                 # Pages (dashboard, applications, editor)
+â”‚   â”œâ”€â”€ components/ui/       # Reusable UI components
+â”‚   â”œâ”€â”€ hooks/               # Custom React hooks (useAuth)
+â”‚   â””â”€â”€ lib/                 # Utilities (Supabase client, API)
+â”œâ”€â”€ backend/                 # Python backend (optional for AI)
+â”‚   â””â”€â”€ src/                 # Foundry integration scripts
+â”œâ”€â”€ sql/                     # Database migration scripts
+â”œâ”€â”€ scripts/                 # Shell scripts and utilities
+â”œâ”€â”€ data/                    # Test data and results
+â””â”€â”€ supabase-schema.sql      # Database setup
 ```
 
 ## Database Schema
@@ -85,7 +88,7 @@ For AI-powered essay feedback, the platform can integrate with Foundry:
 3. **Pipeline Flow**:
 
    ```
-   Essay Content ’ Foundry Pipeline ’ AI Analysis ’ Chatbot Response
+   Essay Content â†’ Foundry Pipeline â†’ AI Analysis â†’ Chatbot Response
    ```
 
 ## Development

@@ -2,9 +2,11 @@
 
 CoffeeChat is a comprehensive college application management platform that helps students track their applications, write essays with AI assistance, and manage deadlines. The platform integrates with Supabase for authentication and Foundry for AI-powered essay analysis and feedback.
 
-## Demo Video
+## 🎥 Demo Video
 
-[![CoffeeChat Demo](https://cdn.loom.com/sessions/thumbnails/3f7c6a7f54494bf59201831ee79d16d9-with-play.gif)](https://www.loom.com/share/3f7c6a7f54494bf59201831ee79d16d9)
+### **[▶️ Click here to watch the CoffeeChat Demo](https://www.loom.com/share/3f7c6a7f54494bf59201831ee79d16d9)**
+
+> See CoffeeChat in action - explore the dashboard, application tracking, and AI-powered essay editor!
 
 ## Quick Start
 
